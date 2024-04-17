@@ -1,7 +1,7 @@
 package jpegli
 
 /*
-#cgo LDFLAGS: -ljpegli
+#cgo LDFLAGS: -ljpegli-static -lhwy -lstdc++ -lm
 #cgo CFLAGS: -O3
 #include "jpegli.h"
 */
@@ -230,7 +230,7 @@ func encode(w io.Writer, m image.Image, quality, chromaSubsampling, progressiveL
 		return ErrEncode
 	}
 
-	out := C.GoBytes(unsafe.Pointer(res), sizePtr)
+	out := C.GoBytes(unsafe.Pointer(res), C.int(size))
 	//cfs := out[:]
 	_, err := w.Write(out)
 	if err != nil {

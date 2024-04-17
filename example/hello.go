@@ -4,7 +4,7 @@ import (
 	"image/jpeg"
 	"os"
 
-	"github.com/carck/jpegli"
+	"github.com/carck/jpegli-go"
 )
 
 func main() {

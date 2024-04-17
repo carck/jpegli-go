@@ -10,7 +10,7 @@ import (
 	"io"
 	"testing"
 
-	"github.com/carck/jpegli"
+	"github.com/carck/jpegli-go"
 )
 
 //go:embed testdata/test.jpg

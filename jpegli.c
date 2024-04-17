@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "jpegli/decode.h"
-#include "jpegli/encode.h"
+#include "lib/jpegli/decode.h"
+#include "lib/jpegli/encode.h"
 
 #include "jpegli.h"
 
@@ -138,7 +138,7 @@ int Decode(uint8_t *jpeg_in, int jpeg_in_size, int config_only, uint32_t *width,
     }
 
     dinfo.dct_method = dct_method;
-    dinfo.do_fancy_upsampling = fancy_upsampling;
+    //dinfo.do_fancy_upsampling = fancy_upsampling;
     dinfo.do_block_smoothing = block_smoothing;
     dinfo.arith_code = arith_code;
 
@@ -355,7 +355,7 @@ uint8_t* Encode(uint8_t *in, uint8_t *inU, uint8_t *inV, int width, int height, 
     }
 
     cinfo.dct_method = dct_method;
-    cinfo.do_fancy_downsampling = fancy_downsampling;
+    //cinfo.do_fancy_downsampling = fancy_downsampling;
 
     uint8_t* out = NULL;
     uint8_t* rgb_in = NULL;
