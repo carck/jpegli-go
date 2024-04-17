@@ -217,7 +217,8 @@ func encode(w io.Writer, m image.Image, quality, chromaSubsampling, progressiveL
 	}
 
 	res := C.Encode(in, inU, inV, C.int(m.Bounds().Dx()), C.int(m.Bounds().Dy()), C.int(colorspace), C.int(chroma), &sizePtr, C.int(quality),
-		C.int(progressiveLevel), C.int(optimizeCodingVal), C.int(adaptiveQuantizationVal), C.int(standardQuantTablesVal), C.int(fancyDownsamplingVal), C.int(dctMethod))
+		C.int(progressiveLevel), C.int(optimizeCodingVal), C.int(adaptiveQuantizationVal), C.int(standardQuantTablesVal),
+		C.int(fancyDownsamplingVal), C.int(dctMethod))
 
 	defer C.free(res)
 
