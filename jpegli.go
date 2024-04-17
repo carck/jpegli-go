@@ -79,7 +79,7 @@ func Decode(r io.Reader) (image.Image, error) {
 	var err error
 	var img image.Image
 
-	img, _, err = C.Decode(r, false, false, false, false, DefaultDCTMethod, 0, 0)
+	img, _, err = decode(r, false, false, false, false, DefaultDCTMethod, 0, 0)
 	if err != nil {
 		return nil, err
 	}

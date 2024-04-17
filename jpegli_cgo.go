@@ -63,7 +63,7 @@ func decode(r io.Reader, configOnly, fancyUpsampling, blockSmoothing, arithCode 
 		arithCodeVal = 1
 	}
 
-	res := C.Decode((*C.uint8_t)(unsafe.Pointer(&data[0])), C.int(inSize), C.int(1), &widthPtr, &heightPtr, &colorspacePtr, &chromaPtr, (*C.uint8_t)(unsafe.Pointer(0)),
+	res := C.Decode((*C.uint8_t)(unsafe.Pointer(&data[0])), C.int(inSize), C.int(1), &widthPtr, &heightPtr, &colorspacePtr, &chromaPtr, nil,
 		C.int(fancyUpsamplingVal), C.int(blockSmoothingVal), C.int(arithCodeVal), C.int(dctMethod), C.int(tw), C.int(th))
 
 	if res == 0 {
@@ -186,13 +186,15 @@ func encode(w io.Writer, m image.Image, quality, chromaSubsampling, progressiveL
 	if colorspace == jcsYCbCr {
 		yuv := m.(*image.YCbCr)
 		in = (*C.uint8_t)(unsafe.Pointer(&yuv.Y[0]))
-		inU = (*C.uint8_t)(unsafe.Pointer(&yuv.Y[0]))
-		inV = (*C.uint8_t)(unsafe.Pointer(&yuv.Y[0]))
+		inU = (*C.uint8_t)(unsafe.Pointer(&yuv.Cb[0]))
+		inV = (*C.uint8_t)(unsafe.Pointer(&yuv.Cr[0]))
 		inputSize = len(yuv.Y) + len(yuv.Cb) + len(yuv.Cr)
 	} else {
 		in = (*C.uint8_t)(unsafe.Pointer(&data[0]))
 		inputSize = len(data)
 	}
+
+	fmt.Print(inputSize)
 
 	var sizePtr C.size_t
 
@@ -220,7 +222,7 @@ func encode(w io.Writer, m image.Image, quality, chromaSubsampling, progressiveL
 		C.int(progressiveLevel), C.int(optimizeCodingVal), C.int(adaptiveQuantizationVal), C.int(standardQuantTablesVal),
 		C.int(fancyDownsamplingVal), C.int(dctMethod))
 
-	defer C.free(res)
+	defer C.free(unsafe.Pointer((res)))
 
 	size := int(sizePtr)
 
