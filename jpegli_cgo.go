@@ -230,7 +230,7 @@ func encode(w io.Writer, m image.Image, quality, chromaSubsampling, progressiveL
 		return ErrEncode
 	}
 
-	out := C.GoBytes(unsafe.Pointer(res), size)
+	out := C.GoBytes(unsafe.Pointer(res), sizePtr)
 	//cfs := out[:]
 	_, err := w.Write(out)
 	if err != nil {
