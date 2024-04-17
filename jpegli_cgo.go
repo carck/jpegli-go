@@ -64,7 +64,7 @@ func decode(r io.Reader, configOnly, fancyUpsampling, blockSmoothing, arithCode 
 		arithCodeVal = 1
 	}
 
-	res := C.Decode((*C.uint8)(unsafe.Pointer(&data[0])), C.int(inSize), C.int(1), &widthPtr, &heightPtr, &colorspacePtr, &chromaPtr, C.int(0),
+	res := C.Decode((*C.uint8_t)(unsafe.Pointer(&data[0])), C.int(inSize), C.int(1), &widthPtr, &heightPtr, &colorspacePtr, &chromaPtr, (*C.uint8_t)(unsafe.Pointer(0)),
 		C.int(fancyUpsamplingVal), C.int(blockSmoothingVal), C.int(arithCodeVal), C.int(dctMethod), C.int(tw), C.int(th))
 
 	if res == 0 {
@@ -110,11 +110,8 @@ func decode(r io.Reader, configOnly, fancyUpsampling, blockSmoothing, arithCode 
 
 	out := make([]byte, size)
 
-	res = C.Decode((*C.uint8)(unsafe.Pointer(&data[0])), uint64(inSize), 0, widthPtr, heightPtr, colorspacePtr, chromaPtr, (*C.uint8)(unsafe.Pointer(&out[0])),
-		uint64(fancyUpsamplingVal), uint64(blockSmoothingVal), uint64(arithCodeVal), uint64(dctMethod), uint64(tw), uint64(th))
-	if err != nil {
-		return nil, cfg, fmt.Errorf("decode: %w", err)
-	}
+	res = C.Decode((*C.uint8_t)(unsafe.Pointer(&data[0])), C.int(inSize), C.int(0), &widthPtr, &heightPtr, &colorspacePtr, &chromaPtr, (*C.uint8_t)(unsafe.Pointer(&out[0])),
+		C.int(fancyUpsamplingVal), C.int(blockSmoothingVal), C.int(arithCodeVal), C.int(dctMethod), C.int(tw), C.int(th))
 
 	if res == 0 {
 		return nil, cfg, ErrDecode
@@ -215,7 +212,7 @@ func encode(w io.Writer, m image.Image, quality, chromaSubsampling, progressiveL
 		fancyDownsamplingVal = 1
 	}
 
-	res := C.Encode(ctx, (*C.uint8)(unsafe.Pointer(&data[0])), C.int(m.Bounds().Dx()), C.int(m.Bounds().Dy()), C.int(colorspace), C.int(chroma), &sizePtr, C.int(quality),
+	res := C.Encode(ctx, (*C.uint8_t)(unsafe.Pointer(&data[0])), C.int(m.Bounds().Dx()), C.int(m.Bounds().Dy()), C.int(colorspace), C.int(chroma), &sizePtr, C.int(quality),
 		C.int(progressiveLevel), C.int(optimizeCodingVal), C.int(adaptiveQuantizationVal), C.int(standardQuantTablesVal), C.int(fancyDownsamplingVal), C.int(dctMethod))
 
 	defer C.free(res)
@@ -227,6 +224,7 @@ func encode(w io.Writer, m image.Image, quality, chromaSubsampling, progressiveL
 	}
 
 	out := (*[&size]byte)(res)
+	//cfs := out[:]
 	_, err := w.Write(out)
 	if err != nil {
 		return fmt.Errorf("write: %w", err)
