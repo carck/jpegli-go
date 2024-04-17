@@ -391,8 +391,8 @@ uint8_t* Encode(uint8_t *in, uint8_t *inU, uint8_t *inV, int width, int height, 
         int i1 = i0 + 1*cw*ch;
 
         y_in = &in[0];
-        cb_in = &in[i0];
-        cr_in = &in[i1];
+        cb_in = &inU[0];
+        cr_in = &inV[0];
     }
 
     stride = cinfo.image_width * cinfo.input_components;
