@@ -234,7 +234,7 @@ int Decode(uint8_t *jpeg_in, int jpeg_in_size, int config_only, uint32_t *width,
     return 1;
 }
 
-uint8_t* Encode(uint8_t *in, int width, int height, int colorspace, int chroma, size_t *size, int quality, int progressive_level, int optimize_coding,
+uint8_t* Encode(uint8_t *in, uint8_t *inU, uint8_t *inV, int width, int height, int colorspace, int chroma, size_t *size, int quality, int progressive_level, int optimize_coding,
         int adaptive_quantization, int standard_quant_tables, int fancy_downsampling, int dct_method) {
 
     struct jpeg_compress_struct cinfo;

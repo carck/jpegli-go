@@ -7,7 +7,6 @@ package jpegli
 */
 import "C"
 import (
-	"context"
 	"fmt"
 	"image"
 	"image/color"
@@ -181,12 +180,17 @@ func encode(w io.Writer, m image.Image, quality, chromaSubsampling, progressiveL
 		colorspace = jcsRGB
 	}
 
-	ctx := context.Background()
-
+	var in *C.uint8_t
+	var inU *C.uint8_t
+	var inV *C.uint8_t
 	if colorspace == jcsYCbCr {
 		yuv := m.(*image.YCbCr)
+		in = (*C.uint8_t)(unsafe.Pointer(&yuv.Y[0]))
+		inU = (*C.uint8_t)(unsafe.Pointer(&yuv.Y[0]))
+		inV = (*C.uint8_t)(unsafe.Pointer(&yuv.Y[0]))
 		inputSize = len(yuv.Y) + len(yuv.Cb) + len(yuv.Cr)
 	} else {
+		in = (*C.uint8_t)(unsafe.Pointer(&data[0]))
 		inputSize = len(data)
 	}
 
@@ -212,7 +216,7 @@ func encode(w io.Writer, m image.Image, quality, chromaSubsampling, progressiveL
 		fancyDownsamplingVal = 1
 	}
 
-	res := C.Encode(ctx, (*C.uint8_t)(unsafe.Pointer(&data[0])), C.int(m.Bounds().Dx()), C.int(m.Bounds().Dy()), C.int(colorspace), C.int(chroma), &sizePtr, C.int(quality),
+	res := C.Encode(in, inU, inV, C.int(m.Bounds().Dx()), C.int(m.Bounds().Dy()), C.int(colorspace), C.int(chroma), &sizePtr, C.int(quality),
 		C.int(progressiveLevel), C.int(optimizeCodingVal), C.int(adaptiveQuantizationVal), C.int(standardQuantTablesVal), C.int(fancyDownsamplingVal), C.int(dctMethod))
 
 	defer C.free(res)
