@@ -154,7 +154,6 @@ func encode(w io.Writer, m image.Image, quality, chromaSubsampling, progressiveL
 	var data []byte
 	var colorspace int
 	var chroma int
-	var inputSize int
 
 	switch img := m.(type) {
 	case *image.Gray:
@@ -188,13 +187,9 @@ func encode(w io.Writer, m image.Image, quality, chromaSubsampling, progressiveL
 		in = (*C.uint8_t)(unsafe.Pointer(&yuv.Y[0]))
 		inU = (*C.uint8_t)(unsafe.Pointer(&yuv.Cb[0]))
 		inV = (*C.uint8_t)(unsafe.Pointer(&yuv.Cr[0]))
-		inputSize = len(yuv.Y) + len(yuv.Cb) + len(yuv.Cr)
 	} else {
 		in = (*C.uint8_t)(unsafe.Pointer(&data[0]))
-		inputSize = len(data)
 	}
-
-	fmt.Print(inputSize)
 
 	var sizePtr C.size_t
 
@@ -230,8 +225,8 @@ func encode(w io.Writer, m image.Image, quality, chromaSubsampling, progressiveL
 		return ErrEncode
 	}
 
-	out := C.GoBytes(unsafe.Pointer(res), C.int(size))
-	//cfs := out[:]
+	//out := C.GoBytes(unsafe.Pointer(res), C.int(size))
+	out := (*[1 << 30]byte)(unsafe.Pointer(res))[:size:size]
 	_, err := w.Write(out)
 	if err != nil {
 		return fmt.Errorf("write: %w", err)
