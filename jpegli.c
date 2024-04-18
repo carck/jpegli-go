@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <setjmp.h>
 
 #include "lib/jpegli/decode.h"
 #include "lib/jpegli/encode.h"
@@ -24,8 +25,17 @@ typedef enum {
     YCbCr410
 } chroma;
 
+struct my_err_mgr {
+  struct jpeg_error_mgr jerr;
+  jmp_buf j_buf;
+};
+
 void error_exit(j_common_ptr info) {
+  struct my_err_mgr *mgr = (struct my_err_mgr*)info->err;
+
   (*info->err->output_message)(info);
+
+  longjmp(mgr->j_buf, 1);
 }
 
 int pad(uint32_t x, uint32_t pad) {
@@ -35,13 +45,26 @@ int pad(uint32_t x, uint32_t pad) {
 
 int Decode(uint8_t *jpeg_in, int jpeg_in_size, int config_only, uint32_t *width, uint32_t *height, uint32_t *colorspace, uint32_t *chroma, uint8_t *out,
         int fancy_upsampling, int block_smoothing, int arith_code, int dct_method, int tw, int th) {
-
+    uint8_t* rgb_out = NULL;
+    JSAMPROW *rows = NULL;
+    JSAMPROW *y_rows = NULL;
+    JSAMPROW *cb_rows = NULL;
+    JSAMPROW *cr_rows = NULL;
     struct jpeg_decompress_struct dinfo;
 
-    struct jpeg_error_mgr jerr;
-    dinfo.err = jpegli_std_error(&jerr);
+    struct my_err_mgr jerr;
+    dinfo.err = jpegli_std_error(&jerr.jerr);
     dinfo.err->error_exit = error_exit;
 
+    if(setjmp(jerr.j_buf) != 0) {
+      jpegli_destroy_decompress(&dinfo);
+      free(rgb_out);
+      free(rows);
+      free(y_rows);
+      free(cb_rows);
+      free(cr_rows);
+      return 0;
+    }
     jpegli_create_decompress(&dinfo);
     jpegli_mem_src(&dinfo, jpeg_in, jpeg_in_size);
 
@@ -143,17 +166,12 @@ int Decode(uint8_t *jpeg_in, int jpeg_in_size, int config_only, uint32_t *width,
     dinfo.arith_code = arith_code;
 
     int stride, y_stride, c_stride;
-    uint8_t* rgb_out;
     uint8_t* y_out;
     uint8_t* cb_out;
     uint8_t* cr_out;
     int mcu_rows = 0;
 
     JSAMPROW row[1];
-    JSAMPROW *rows = NULL;
-    JSAMPROW *y_rows = NULL;
-    JSAMPROW *cb_rows = NULL;
-    JSAMPROW *cr_rows = NULL;
 
     jpegli_set_output_format(&dinfo, JPEGLI_TYPE_UINT8, JPEGLI_NATIVE_ENDIAN);
 
@@ -239,8 +257,8 @@ uint8_t* Encode(uint8_t *in, uint8_t *inU, uint8_t *inV, int width, int height, 
 
     struct jpeg_compress_struct cinfo;
 
-    struct jpeg_error_mgr jerr;
-    cinfo.err = jpegli_std_error(&jerr);
+    struct my_err_mgr jerr;
+    cinfo.err = jpegli_std_error(&jerr.jerr);
     cinfo.err->error_exit = error_exit;
 
     jpegli_create_compress(&cinfo);
@@ -252,6 +270,7 @@ uint8_t* Encode(uint8_t *in, uint8_t *inU, uint8_t *inV, int width, int height, 
     uint8_t* y_in;
     uint8_t* cb_in;
     uint8_t* cr_in;
+    uint8_t* rgb_in = NULL;
 
     JSAMPROW row[1];
     JSAMPROW *rows = NULL;
@@ -259,6 +278,14 @@ uint8_t* Encode(uint8_t *in, uint8_t *inU, uint8_t *inV, int width, int height, 
     JSAMPROW *cb_rows = NULL;
     JSAMPROW *cr_rows = NULL;
 
+    if(setjmp(jerr.j_buf) != 0) {                                                 free(rgb_in);
+      free(rows);
+      free(y_rows);
+      free(cb_rows);
+      free(cr_rows);
+      jpegli_destroy_compress(&cinfo);
+      return 0;
+    }
     cinfo.image_width = width;
     cinfo.image_height = height;
 
@@ -358,7 +385,6 @@ uint8_t* Encode(uint8_t *in, uint8_t *inU, uint8_t *inV, int width, int height, 
     //cinfo.do_fancy_downsampling = fancy_downsampling;
 
     uint8_t* out = NULL;
-    uint8_t* rgb_in = NULL;
     jpegli_mem_dest(&cinfo, &out, size);
 
     jpegli_start_compress(&cinfo, 1);
