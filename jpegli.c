@@ -1,7 +1,9 @@
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <setjmp.h>
+#include <unistd.h>
 
 #include "lib/jpegli/decode.h"
 #include "lib/jpegli/encode.h"
@@ -43,8 +45,9 @@ int pad(uint32_t x, uint32_t pad) {
     return (x + pp) & (~pp);
 }
 
-int Decode(uint8_t *jpeg_in, int jpeg_in_size, int config_only, uint32_t *width, uint32_t *height, uint32_t *colorspace, uint32_t *chroma, uint8_t *out,
+int Decode(int fd, uint8_t *jpeg_in, int jpeg_in_size, int config_only, uint32_t *width, uint32_t *height, uint32_t *colorspace, uint32_t *chroma, uint8_t *out,
         int fancy_upsampling, int block_smoothing, int arith_code, int dct_method, int tw, int th) {
+    FILE * in_file = NULL;
     uint8_t* rgb_out = NULL;
     JSAMPROW *rows = NULL;
     JSAMPROW *y_rows = NULL;
@@ -65,9 +68,18 @@ int Decode(uint8_t *jpeg_in, int jpeg_in_size, int config_only, uint32_t *width,
       return 0;
     }
     jpegli_create_decompress(&dinfo);
-    jpegli_mem_src(&dinfo, jpeg_in, jpeg_in_size);
+    if(jpeg_in_size > 0) {
+        jpegli_mem_src(&dinfo, jpeg_in, jpeg_in_size);
+    } else {
+        in_file = fdopen(dup(fd), "r");
+        fseek(in_file, 0, SEEK_SET );
+        jpegli_stdio_src(&dinfo, in_file);
+    }
 
     if(jpegli_read_header(&dinfo, 1) != JPEG_HEADER_OK) {
+        if (in_file != NULL) {
+            fclose(in_file);
+        }
         jpegli_destroy_decompress(&dinfo);
         return 0;
     }
@@ -155,6 +167,9 @@ int Decode(uint8_t *jpeg_in, int jpeg_in_size, int config_only, uint32_t *width,
     }
 
     if(config_only) {
+        if (in_file != NULL) {
+            fclose(in_file);
+        }
         jpegli_destroy_decompress(&dinfo);
         return 1;
     }
@@ -231,6 +246,9 @@ int Decode(uint8_t *jpeg_in, int jpeg_in_size, int config_only, uint32_t *width,
         free(cr_rows);
     }
 
+    if (in_file != NULL) {
+        fclose(in_file);
+    }
     jpegli_finish_decompress(&dinfo);
     jpegli_destroy_decompress(&dinfo);
 

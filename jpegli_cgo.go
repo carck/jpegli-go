@@ -11,6 +11,7 @@ import (
 	"image"
 	"image/color"
 	"io"
+	"os"
 	"unsafe"
 )
 
@@ -23,25 +24,23 @@ const (
 )
 
 func decode(r io.Reader, configOnly, fancyUpsampling, blockSmoothing, arithCode bool, dctMethod DCTMethod, tw, th int) (image.Image, image.Config, error) {
-
-	var err error
 	var cfg image.Config
-	var data []byte
+	var data *C.uint8_t
+	var fd C.int
+	inSize := 0
 
-	if configOnly {
-		data = make([]byte, 1024*50)
-		_, err = r.Read(data)
-		if err != nil {
+	switch r.(type) {
+	case *os.File:
+		data = nil
+		fd = C.int(r.(*os.File).Fd())
+	default:
+		if buf, err := io.ReadAll(r); err != nil {
 			return nil, cfg, fmt.Errorf("read: %w", err)
-		}
-	} else {
-		data, err = io.ReadAll(r)
-		if err != nil {
-			return nil, cfg, fmt.Errorf("read: %w", err)
+		} else {
+			inSize = len(buf)
+			data = (*C.uint8_t)(unsafe.Pointer(&buf[0]))
 		}
 	}
-
-	inSize := len(data)
 
 	var widthPtr C.uint32_t
 	var heightPtr C.uint32_t
@@ -63,9 +62,8 @@ func decode(r io.Reader, configOnly, fancyUpsampling, blockSmoothing, arithCode 
 		arithCodeVal = 1
 	}
 
-	res := C.Decode((*C.uint8_t)(unsafe.Pointer(&data[0])), C.int(inSize), C.int(1), &widthPtr, &heightPtr, &colorspacePtr, &chromaPtr, nil,
+	res := C.Decode(fd, data, C.int(inSize), C.int(1), &widthPtr, &heightPtr, &colorspacePtr, &chromaPtr, nil,
 		C.int(fancyUpsamplingVal), C.int(blockSmoothingVal), C.int(arithCodeVal), C.int(dctMethod), C.int(tw), C.int(th))
-
 	if res == 0 {
 		return nil, cfg, ErrDecode
 	}
@@ -109,7 +107,7 @@ func decode(r io.Reader, configOnly, fancyUpsampling, blockSmoothing, arithCode 
 
 	out := make([]byte, size)
 
-	res = C.Decode((*C.uint8_t)(unsafe.Pointer(&data[0])), C.int(inSize), C.int(0), &widthPtr, &heightPtr, &colorspacePtr, &chromaPtr, (*C.uint8_t)(unsafe.Pointer(&out[0])),
+	res = C.Decode(fd, data, C.int(inSize), C.int(0), &widthPtr, &heightPtr, &colorspacePtr, &chromaPtr, (*C.uint8_t)(unsafe.Pointer(&out[0])),
 		C.int(fancyUpsamplingVal), C.int(blockSmoothingVal), C.int(arithCodeVal), C.int(dctMethod), C.int(tw), C.int(th))
 
 	if res == 0 {
